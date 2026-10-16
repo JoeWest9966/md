@@ -180,10 +180,11 @@ README 首行自标 **Experimental — "The API changes without notice between r
 - **保证**：`env()` 每次调用拿到 conversationId、当前 `cwd`、committed reads——一个函数就能做"每会话一个目录/容器"（README「Environment」）；内建工具只通过 env 触碰文件与进程；`env` 抛错变成该调用的错误结果；`edit/write` 按 `env.id` + 路径串行化同文件并发；提供 `openBinaryReader/openDirReader/exec(argv 数组，不经 shell)`；自写 env 可跑 `registerEnvConformance()`（README 同节）。
 - **不保证**：**没有 env 就没有内建工具**（直接错误结果）；`listFiles()` 是可选方法，`NodeExecutionEnv` 不实现，缺失/`not_supported` 时调用方自己走（README 同节）；恢复重跑时 env **重新构建、用当前 cwd**（可能和第一次不同，spec §12）。
 - **代价**：`env()` 不在 Session 线上跑（可异步），但每个调用一次构建；隔离是你的责任。
-- **出处**：README「Environment」；`src/env/index.ts`（`ExecutionEnv` 契约）、`src/env/node.ts`。
+- **再补一条不保证（README 不提、spec 半句带过）**：环境是 **trusted，不是 confinement boundary**——先比对 canonical path 再 open 挡不住并发 rename/symlink swap，路径限制只算卫生不安全（spec §7.3）。要沙箱级隔离得在 env 之外自己加围栏，pi-durable 不提供。
+- **出处**：README「Environment」；spec §7.3；`src/env/index.ts`（`ExecutionEnv` 契约）、`src/env/node.ts`。
 
 ### Images
-- **保证**：`read` 返回图片为一个 image block；默认限制 2000×2000 / 4.5MB base64；无处理器时只透传 PNG/JPEG/GIF/WebP（读头不解码）、超限拒绝；有 Photon 处理器时全部解码、EXIF 矫正、BMP→PNG、缩到适配（README「Tools」）；`/images/node` 在 worker 线程准备，大照片不堵事件循环，空闲 30s 退出释放 WASM 内存（README 同节）。
+- **保证**：`read` 返回图片为一个 image block；默认限制 2000×2000 / 4.5 MiB base64（`src/tools/image-processor.ts` `DEFAULT_IMAGE_LIMITS = { 2000, 2000, 4.5 * 1024 * 1024 }`；README 写「4.5 MB」，引数字以源码为准）；无处理器时只透传 PNG/JPEG/GIF/WebP（读头不解码）、超限拒绝；有 Photon 处理器时全部解码、EXIF 矫正、BMP→PNG、缩到适配（README「Tools」）；`/images/node` 在 worker 线程准备，大照片不堵事件循环，空闲 30s 退出释放 WASM 内存（README 同节）。
 - **不保证**：无图片输入能力的模型只看到占位符 + 诊断；`/images/cloudflare` 与裸 `createPhotonImages()` 在调用线程解码，**WASM 内存取过峰值不再收缩**——README 明劝内存受限的宿主别装处理器（README 同节）。
 - **代价**： Photon WASM（依赖 `@silvia-odwyer/photon`）是常驻依赖；图片按 inputLimits 缩放消耗 CPU/内存。
 - **出处**：README「Tools」；`src/images/**`、`src/tools/image*.ts`。
@@ -276,6 +277,7 @@ README 首行自标 **Experimental — "The API changes without notice between r
 6. **watch 的 100 帧合并**：README 说了会合并成全量帧；spec §12 才把结论说穿——"必须审计每次转变的消费者要自己落盘"。
 7. **deferred（provider 侧延迟响应）** README 只在 `viewState()` 的一行注释里出现 `deferred` 一词，没有解释；机制全在 `ConversationStreamOptions.deferred` 与 spec §5.2/§8.3 的 `poll` 阶段——当卖点要注明它依赖 pi-ai 的 `fetchDeferred/cancelDeferred`。
 8. **watcher 与 truncate 在 README 里几乎没有名字**：watcher 契约只存在于 `src/env/index.ts` / `src/env/node-watch.ts` 的注释里，truncate 默认值只见于 spec §7.3 与 `src/truncate.ts`。只读 README 的人会以为这两样不存在。
+9. **词表落差：README 说 Harness，spec §1 说 Session**——Session 是「一条 mutation line + 四类 record」的底层词，Harness = Session + agent 机制；包根还导出 `createSession()`（`src/index.ts` ← `src/session/session.ts`），即不用 Harness、只要 documents/entries/tasks/watch 的分层也是可选的，README 一字未提。引 spec 条款时别把 Session 当成另一个东西。
 
 ---
 
