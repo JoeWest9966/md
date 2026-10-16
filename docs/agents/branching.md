@@ -19,3 +19,16 @@ Two branches that both edited `GLOSSARY.md` will not auto-merge, and the losing 
 4. **Verify nothing trunk-only was dropped**: `git diff <old-main-tip>:GLOSSARY.md GLOSSARY.md` and read every `-` line. Each one must be a line that a newer decision supersedes.
 
 Never `git push --force` to `main`.
+
+## 钩子（写进文字是没用的，装成钩子才算数）
+
+**新 clone / 新 worktree 第一件事**：`bash scripts/install-git-hooks.sh`（设 `core.hooksPath=.githooks`；worktree 共用仓库 config，装一次就够）。没装 = 下面两条都是空的。
+
+| 钩子 | 拦什么 | 对应事故 |
+|---|---|---|
+| `prepare-commit-msg`（`source=merge` 时） | 并进来一个落后于 `origin/<branch>` 的**陈旧分支**；先 `fetch` 再比，判据是 MERGE_HEAD 是否为某个远端分支的严格祖先 | #2：没 fetch 就把 `research/durable-primitives` 的初稿并上主干 |
+| `pre-push` | ① 删远端 ref；② 对已推送 ref 的非快进更新（force push） | #3：`git push origin --delete` 丢了一个提交 |
+
+钩子为什么不在 `pre-merge-commit`：那个阶段 `git merge` 还没写 `MERGE_HEAD`（只有 `AUTO_MERGE`），认不出被并的 tip。
+
+**第二层（不靠本地配置）**：`main` 上开了 GitHub branch protection —— 禁 force push、禁删除、`enforce_admins: true`，所以连仓库管理员也绕不过。钩子是早提醒，这层是兜底。

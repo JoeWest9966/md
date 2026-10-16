@@ -16,4 +16,4 @@ Single-context: `GLOSSARY.md` at the root, ADRs under `docs/adr/`. See `docs/age
 
 ### Branching
 
-`main` is the trunk — closed tickets' output merges back in, branches are never deleted, and a diverged branch gets reconciled on the branch before merging. See `docs/agents/branching.md`.
+`main` is the trunk — closed tickets' output merges back in, branches are never deleted, and a diverged branch gets reconciled on the branch before merging. New clone: run `bash scripts/install-git-hooks.sh`. See `docs/agents/branching.md`.

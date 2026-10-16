@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# pre-push —— 挡住两类已经出过事故的远端操作（见 docs/agents/branching.md）
+#
+#   1. 删远端 ref：ref 是未推送对象的唯一副本（#3：`git push origin --delete` 丢过一个提交）
+#   2. 非快进推主干（force push / 改写已推送历史）
+#
+# 「并了陈旧分支」不在这里查 —— 那个在 pre-merge-commit 拦，早一步且不看误报。
+set -uo pipefail
+
+remote="${1:-origin}"
+ZERO="0000000000000000000000000000000000000000"
+fail=0
+
+if git remote get-url "$remote" >/dev/null 2>&1; then
+  git fetch --quiet --prune "$remote" 2>/dev/null ||
+    echo "pre-push: 警告 —— fetch $remote 失败，本轮只比本地缓存" >&2
+fi
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ -z "${remote_ref:-}" ] && continue
+
+  # 1) 删 ref
+  if [ "$local_sha" = "$ZERO" ]; then
+    echo "pre-push 拒绝：删除远端 ref $remote_ref。" >&2
+    echo "  远端 ref 是这个分支未推送对象的唯一副本；GitHub 不保留 ref 备份。#3 事故。" >&2
+    fail=1
+    continue
+  fi
+
+  # 2) 非快进（含 force push）
+  if [ "$remote_sha" != "$ZERO" ] && ! git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then
+    echo "pre-push 拒绝：$remote_ref 是非快进更新（${remote_sha:0:7} → ${local_sha:0:7}）。" >&2
+    echo "  要改写已推送的历史，去把理由说清楚，别用 --force 解决。" >&2
+    fail=1
+    continue
+  fi
+done
+
+exit "$fail"
