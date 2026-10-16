@@ -13,3 +13,7 @@ Five canonical triage roles, label strings equal to their names (`needs-triage`,
 ### Domain docs
 
 Single-context: `GLOSSARY.md` at the root, ADRs under `docs/adr/`. See `docs/agents/domain.md`.
+
+### Branching
+
+`main` is the trunk — closed tickets' output merges back in, branches are never deleted, and a diverged branch gets reconciled on the branch before merging. See `docs/agents/branching.md`.
