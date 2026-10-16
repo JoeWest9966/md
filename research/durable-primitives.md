@@ -54,8 +54,8 @@ README 首行自标 **Experimental — "The API changes without notice between r
 ### Task（durable state machine）
 - **判断**：整个运行时最硬的原语；"durable"的真实含义是 **intent 先落盘、效果在外、结果再落盘**。
 - **保证**：每个状态转换落 checkpoint，重启从最后一个 pending 恢复（README「Concepts」；spec §5.1 状态机 pending/running/waiting/completing/terminal）；abort 协议先提交 durable abort mark 再发信号，调度器事后用 reconcile commit 推导级联，**崩溃不丢 mark**（spec §5.4）；定义缺失/版本不兼容的任务**永不被强行终态化**——保持 pending、`blocked: missing_task/task_too_old/migration_failed`，装上扩展就继续（spec §5.4）；`memo` 是 first-writer-wins 的 durable 值，同 commit 选胜者（spec §5.2）。
-- **不保证**：重开落在 intent 阶段 = **效果可能已经发生**——"the effect may have happened"，由 handler 自己 retry/poll/记 interrupted（spec §5.2，effect sandwich）；abort handler 里不能建 owned child（会被自己标记），补偿必须在"做了效果的那一层"做（spec §12）；blocked 任务被 abort 时只能 `orphaned`（外部效果可能没清干净，spec §5.4）；"每个 step 存 checkpoint"的说法是散文级概括——checkpoint 在 phase 边界提交，不是任意点（spec §5.1）。
-- **代价**：写自己的 task = 自己管 migrate/version/abort handler/补偿；scheduler 的 reconciliation/reservation 提交抛错会**直接杀死 Session**（spec §10.1）。
+- **不保证**：重开落在 intent 阶段 = **效果可能已经发生**——"the effect may have happened"，由 handler 自己 retry/poll/记 interrupted（spec §5.2，effect sandwich）；**一个 phase 跑完若 checkpoint 结构上没变，调度器直接把它写成 `faulted`**——"returned without durable progress"（spec §5.1 规则 6；`src/harness/scheduler.ts` `#decide` 用 `jsonEqual` 比对）。README「Concepts」只说"每步存 checkpoint"，没说"不存就判死"：这是**强于 blurb** 的一半，也是写自定义 task 最容易踩的一脚。abort handler 里不能建 owned child（会被自己标记），补偿必须在"做了效果的那一层"做（spec §12）；blocked 任务被 abort 时只能 `orphaned`（外部效果可能没清干净，spec §5.4）；"每个 step 存 checkpoint"的说法是散文级概括——checkpoint 在 phase 边界提交，不是任意点（spec §5.1）。
+- **代价**：写自己的 task = 自己管 migrate/version/abort handler/补偿，外加"每至少提交一次"的硬义务；scheduler 的 reconciliation/reservation 提交抛错会**直接杀死 Session**（spec §10.1）。
 - **出处**：README「Concepts」「Child Tasks」；spec §5、§5.2、§5.4、§12。
 
 ### Submission + requestId 幂等
@@ -90,6 +90,13 @@ README 首行自标 **Experimental — "The API changes without notice between r
 - **代价**：background 边界 + `{ background: true }` 组合是心智负担；owned 持有规则（completing 拖住 owner）很容易把 run 意外挂住（spec §12「Owned work holds your owner」）。
 - **出处**：README「Abort and Subagents」「Child Tasks」；spec §5.4、§5.5、§12、§13。
 
+### Subagent（task-owned conversation）
+- **判断**：README 把它写成示例，实际是**所有权树的组合技**：子会话归 task，task 归调用工具。
+- **保证**：子会话用 `ownership: { kind: "task", taskId }` 在 `api.commit()` 里创建，**初始 agent 是父会话的拷贝**（模型/扩展/cwd，之后可单独 `configure`）；abort 调用 = abort 子会话，调用抛错/崩溃同理；父会话只有子空闲才算空闲（README「Abort and Subagents」）；replay-safe 的 subagent 工具靠 ownership index（`tx.scanConversations({ ownerTaskId })`）重跑时**找回同一个孩子和同一条 submission**（README 同节）。
+- **不保证**：agent 拷贝**只有创建那一刻一次**，父此后改 agent 传不进子（spec §12「Copies are one-time」）；`{ add, remove }` 写给子会话会把它整个换成"host 默认+edit"而不是父的选择（spec §12「Selection edits and copies」）；**审问已完成的子 agent 会延长工具的 `completing` 占位**、连带拖住 run，要不拖就放 background（spec §12「Owned work holds its owner」）；`owner` 边不是访问控制（spec §2）。
+- **代价**：一次 subagent = 子会话 + 其 `pi.live/pi.inbox/pi.usage/pi.agent/pi.provider` 全套文档 + 一到两个 task；子会话的 usage 已记在自己账上，工具结果里再报就双计（spec §12）。
+- **出处**：README「Abort and Subagents」（含例 22/23）；spec §2、§5.5、§12。
+
 ### Child task + waiting（`failFast` / `allSettled`）
 - **保证**：`waiting` 状态下**一行代码都不跑**，全 terminal 才回到 checkpoint；`failFast` 第一个失败会 abort 其余；结局已定但 owned work 还活着时是 `completing`，`waitForTask()` 只在真正 terminal 才返回；abort 自底向上（README「Child Tasks」）。
 - **不保证**：等待期间 owner 不空闲——**子任务会拖住 run**（spec §12「Owned work holds your owner」：审问 subagent 会拉长工具占位）；要"不拖住"就必须 conversation-owned + background（spec §12）。
@@ -103,7 +110,7 @@ README 首行自标 **Experimental — "The API changes without notice between r
 - **出处**：README「Task Graph」；spec §9.5。
 
 ### resume
-- **保证**：`harness.resume()` 启动调度器（submit/wait 也会顺带启动）；中断的工作停在 pending，重启续跑；`close()` 停调用但不写结局，所以"续"是默认语义（README「Persist and Resume」；spec §5.4）。
+- **保证**：`harness.resume()` 启动调度器（submit/wait 也会顺带启动）；中断的工作停在 pending，重启续跑；`close()` 停调用但不写结局，所以"续"是默认语义（README「Persist and Resume」；spec §5.4）；每个会话的 provider `sessionId`（UUIDv7）**扛住重开、重试、reset、compaction、换模型**，legacy 会话在首次请求前补发并存下来，只有 child/fork 拿新身份（README 同节）。
 - **不保证**：**open 本身什么都不标**——纯查看式 open 不会把 `abandonOnRestart` 任务标掉（spec §5.4：要等第一次调度才标 `abortReason: "restart"`）；resume 不是"恢复现场内存"，一切以存储重算。
 - **代价**：每次重开要重建 registry、env、settings；pending 任务可能 blocked 在缺失扩展上。
 - **出处**：README「Persist and Resume」「Tools」（小节 Tasks a restart abandons）；spec §5.4。
@@ -127,10 +134,10 @@ README 首行自标 **Experimental — "The API changes without notice between r
 
 ### Tools（defineTool / 校验 / replay / outputLimits / control）
 - **判断**：默认**不重放**；"durable tool" 的安全网是按需开的开关。
-- **保证**：参数按 TypeBox schema 在 `execute()` 前校验；**intent 在 `execute()` 之前提交**（README「Tools」）；`replay: "safe"` 的工具崩溃后重开重跑；不 safe 的拿到 `interrupted` 错误结果、**已提交的部分输出保留**；`api.output()` 流式输出成为结果；三通道 `output / structuredOutput / details`（README 同节）；`control: { terminate }` 全票通过则不再发请求、`handoff` 结束 run 换上下文、`addTools` 载入 deferred 工具（README 同节；spec §7.3、§8.3）。
-- **不保证**：`replay` **缺省是 `unsafe`**（spec §7.3）；重放要**存储的 intent 策略和当前声明同时说 safe**——当前声明是 `unsafe` 可以否决存下来的 safe，声明找不到了按 unsafe 处理（spec §7.3，README 只说"declared replay: safe"，弱于实际规则）；**有外部效果的 replay-safe 工具仍然需要自己的幂等**（README「Tools」直书）；`beforeTool` 在恢复时不重跑，参数沿用存下来的（spec §7.3）。
+- **保证**：参数按 TypeBox schema 在 `execute()` 前校验；**intent 在 `execute()` 之前提交**（README「Tools」）；`replay: "safe"` 的工具崩溃后重开重跑；不 safe 的拿到 `interrupted` 错误结果、**已提交的部分输出保留**；`api.output()` 流式输出成为结果；三通道 `output / structuredOutput / details`（README 同节）；`control: { terminate }` 全票通过则不再发请求、`handoff` 结束 run 换上下文、`addTools` 载入 deferred 工具（README 同节；spec §7.3，落点在 §8.5 tool round）。
+- **不保证**：`replay` **缺省是 `unsafe`**（spec §7.3）；重放要**存储的 intent 策略和当前声明同时说 safe**——当前声明是 `unsafe` 就否决存下来的 safe，工具当前解析不到就走 `interrupted`（spec §8.4 `execute` 分支 + §7.1 的解析表；README 只说"declared replay: safe"，弱于实际规则）；**有外部效果的 replay-safe 工具仍然需要自己的幂等**（README「Tools」直书）；`beforeTool` 在恢复时不重跑，参数沿用存下来的（spec §8.4 `execute` 分支）。
 - **代价**：`outputLimits` 缺省 50 KiB / 2000 行 / `retain: "head"`——截断后的尾巴就是模型看到的全部（spec §7.3；`src/truncate.ts`：行/字节双限先到先得、永不返回半行）。
-- **出处**：README「Tools」「Tasks a restart abandons」；spec §5.2、§7.3；`src/truncate.ts`。
+- **出处**：README「Tools」「Tasks a restart abandons」；spec §5.2、§7.3、§8.4；`src/truncate.ts`。
 
 ### Nested tool calls（`api.executeTool()`）
 - **保证**：嵌套调用是**独立 durable task**，归调用者所有：照样校验、跑 `ToolTask` hooks、有自己的 replay 策略和输出上限（README「Calling tools from tools」）；按 key 幂等——顺序或显式 key 相同，replay-safe 的调用者重跑时**找回已发出的嵌套调用**（跑完的或还在跑的）；调用者 settle 前遗留的嵌套调用（含上次尝试留下的）被 abort（README 同节）。
@@ -145,10 +152,10 @@ README 首行自标 **Experimental — "The API changes without notice between r
 - **出处**：README「Tools」；spec §7.3。
 
 ### wrapTool / 同名覆盖
-- **保证**：后装的同名工具在**双方都被选择**时覆盖先前的；`wrapTool()` 装饰的是"赢的那个"（README「Tools」小节 wrapTool；例 30）。
+- **保证**：后装的同名工具在**双方都被选择**时覆盖先前的；`wrapTool()` 装饰的是"赢的那个"（README「Tools」wrapTool 段、例 30；spec §7.1 的 `wrapTool` 签名与解析顺序）。
 - **不保证**：覆盖与包装都依赖"选择交集"，没选中的组合不生效；`wraps` 按名解析，声明缺席则无事发生。
 - **代价**：同名覆盖是隐式行为，读懂一个会话实际跑哪个 bash 要顺着 registry 选择顺序推。
-- **出处**：README「Tools」「Reload」；spec §7.3（`wrapTool(tool, wrapper)`）。
+- **出处**：README「Tools」「Reload」；spec §7.1（`wrapTool(tool, wrapper)` 与解析顺序）。
 
 ### Hooks
 - **保证**：`ToolTask.beforeTool`（block/改参）、`afterTool`（换结果）、`GenerationTask.beforeRequest`（换本次请求的 messages）、`afterResponse`、`onYield`（续跑）、`afterTools`（README「Hooks」）；只在**选择该扩展的会话**里生效——按会话限流就 `configure({ extensions: { add: [Guard] } })`（README 同节）；hook 抛错被报告并跳过，**唯独 `beforeTool` 抛错会 block 调用**（README「Errors」）。
@@ -160,7 +167,7 @@ README 首行自标 **Experimental — "The API changes without notice between r
 - **判断**：整个包里**最像魔法**的一块：QuickJS 里跑脚本、崩溃后"重放脚本+喂同样的 journal"。
 - **保证**：脚本重启后从断点续、**已跑完的调用不重跑**（README「Code Mode」）；sandbox 确定性（虚拟时钟、种子随机、UTC）+ 结果先写 journal 再交给脚本，重跑按同序喂回，嵌套调用按 key 重新挂上；`store/load` 是 per-conversation JSON，fork 看到的是入口处的值（README 同节）。
 - **不保证**：脚本走岔路、sandbox 指纹变了、codemode 版本变了、期间 `timeout_ms` 已过 → 重跑**直接以错误结束**（README 同节）；重跑时仍在跑的嵌套调用按各自 replay 策略处理；关 sandbox 关不掉在跑的脚本（"不是一种结局"，等下一个进程的 sandbox，README 同节）；递归/深度无上限约束是工具侧的事。
-- **代价**：一次 codemode = 一个工具 task + 一个脚本 task + n 个嵌套 task；输出超 `max_output_tokens` 被截断、全文进临时文件；每个会话的 token 预算内要把工具清单写成 TS 声明。
+- **代价**：一次 codemode = 一个 `pi.tool` task（replay-safe）+ n 个嵌套 call task；`models.classify()/generateImages()` 也各自变成内部 task（`pi.codemode.models.*`，一次至多 4 个并发）。脚本本身**不占独立 task**——它跑在 codemode 工具的 `execute()` 里（`src/codemode/codemode.ts`）。输出超 `max_output_tokens` 被截断、全文进临时文件；每个会话的 token 预算内要把工具清单写成 TS 声明。
 - **出处**：README「Code Mode」；spec §7.6；`src/codemode/**`。
 
 ### Search / tool-search（BM25、deferred tools）
@@ -244,7 +251,7 @@ README 首行自标 **Experimental — "The API changes without notice between r
 ### watchDoc / documentState / snapshot（"session 级 watch" 名不副实）
 - **判断**：**没有 whole-session watch**——这是命名上的边界，不是遗漏（spec §13 把 whole-Session DOM 列为 non-goal）。
 - **保证**：`harness.watchDoc()` 观察单个文档、`harness.documentState()` 取值、`harness.snapshot(token, id)` 取快照、`harness.watchTaskGraph()` 观察全 Session 的任务图、`Conversation.watch()` 观察单会话（README「Your Own State」「Watching a Conversation」「Task Graph」）。
-- **不保证**：三个粒度（文档/会话/任务图）之间**没有统一总线**；`snapshot()` 对没显式创建过的文档返回 `undefined`——只有 `tx.doc()` 会创建（spec §12「Explicit creation」）；retired 文档在 current 视角读作 initial（spec §9.4 同类语义）。
+- **不保证**：三个粒度（文档/会话/任务图）之间**没有统一总线**；`snapshot()` 对没显式创建过的文档返回 `undefined`——只有 `tx.doc()` 会创建（spec §12「Explicit creation」）；文档退休时 state 看到 `null`（spec §9.1），而 agent-event 的 snapshot 把退休的内建文档读作 initial 值（spec §9.4）——**两处语义不同，别混用**。
 - **代价**：想要"整个 harness 的一条流"要自己拼三路。
 - **出处**：README「Your Own State」「Watching a Conversation」「Task Graph」；spec §9、§13。
 
@@ -261,13 +268,14 @@ README 首行自标 **Experimental — "The API changes without notice between r
 - **出处**：README「Errors」；spec §10.1、§13；`src/errors.ts`。
 
 ### 落差与含糊清单（README 说不清/说得比 spec 松的地方）
-1. **replay 安全性**：README 说"declared `replay: 'safe'` 才重跑"；spec §7.3 要求**存储策略与当前声明同时 safe**，当前 unsafe 否决存量 safe，声明缺失按 unsafe。按 README 实现会误信恢复语义。
+1. **replay 安全性**：README 说"declared `replay: 'safe'` 才重跑"；spec §8.4 要求**存储的 intent 策略与当前解析出的声明同时说 safe**——当前 unsafe 否决存量 safe，工具当前找不到就走 `interrupted`。按 README 实现会误信恢复语义。
 2. **requestId**：README 例子像全局幂等；spec §6 是**会话内**去重，且跨类型复用直接拒绝。
 3. **compaction 的钱与丢数据**：stale 摘要照付、压缩期间应用 edit/head 可丢，只在 spec §12 出现，README「Compaction」只讲了 stale 排序。
 4. **generation 全无散文节**：retry/deferred/overflow-retry-once 只在 spec §8.3；README「Concepts」只有一张流程图。
-5. **"checkpoint at every step"**（README「Concepts」）实际是 **phase 边界提交** + effect sandwich（spec §5.1/§5.2）：外部效果天然"可能已发生"。
+5. **"checkpoint at every step"**（README「Concepts」）实际是两句话：**phase 边界提交** + effect sandwich（外部效果天然"可能已发生"，spec §5.2）；以及它的反面——**phase 返回时 checkpoint 结构没变 = `faulted`**（spec §5.1 规则 6；`src/harness/scheduler.ts`）。README 通篇不提这条 fault 路径。
 6. **watch 的 100 帧合并**：README 说了会合并成全量帧；spec §12 才把结论说穿——"必须审计每次转变的消费者要自己落盘"。
-7. **deferred（provider 侧延迟响应）** 在 README 完全没解释，只在 `ConversationStreamOptions.deferred` 与 spec §8.3 的 `poll` 阶段存在——若在书里当卖点，需注明依赖 pi-ai 的 `fetchDeferred/cancelDeferred`。
+7. **deferred（provider 侧延迟响应）** README 只在 `viewState()` 的一行注释里出现 `deferred` 一词，没有解释；机制全在 `ConversationStreamOptions.deferred` 与 spec §5.2/§8.3 的 `poll` 阶段——当卖点要注明它依赖 pi-ai 的 `fetchDeferred/cancelDeferred`。
+8. **watcher 与 truncate 在 README 里几乎没有名字**：watcher 契约只存在于 `src/env/index.ts` / `src/env/node-watch.ts` 的注释里，truncate 默认值只见于 spec §7.3 与 `src/truncate.ts`。只读 README 的人会以为这两样不存在。
 
 ---
 
