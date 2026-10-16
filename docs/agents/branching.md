@@ -22,7 +22,7 @@ Never `git push --force` to `main`.
 
 ## 钩子（写进文字是没用的，装成钩子才算数）
 
-**新 clone / 新 worktree 第一件事**：`bash scripts/install-git-hooks.sh`（设 `core.hooksPath=.githooks`；worktree 共用仓库 config，装一次就够）。没装 = 下面两条都是空的。
+**新 clone / 新 worktree 第一件事**：`bash scripts/install-git-hooks.sh`（设 `core.hooksPath` 为主 worktree 的 `.githooks` **绝对路径**；worktree 共用仓库 config，装一次就够）。钩子会真拦住，不是提醒。没装 = 下面两条都是空的，而且**静默**是空的 —— 相对路径的 `hooksPath` 会让没带 `.githooks` 的 worktree 一个钩子都不跑，所以装成绝对路径。
 
 | 钩子 | 拦什么 | 对应事故 |
 |---|---|---|
