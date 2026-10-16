@@ -15,6 +15,8 @@ Status: accepted（决定于 [#6](https://github.com/JoeWest9966/md/issues/6)）
 
 判定规则：**这个词在中文技术语境里有没有唯一、不歧义的译法？有 → B；没有，或译了会抹掉边界 → A/D；书自己的概念 → C。**
 
+**字面名不译**：枚举值与选项名（`pending`、`faulted`、`replay: "safe"`、`whenBusy`）、方法名（`submit()`、`commit()`、`fork()`）、`pi.*` kind 逐字保留英文，不占档位、不做术语注解，只在首次出现处给一句「它是哪一层的东西」。它们不是词汇，是 API 表面；读者要拿它们去 grep 源码和 issue。
+
 逐词档位写在 `GLOSSARY.md` 的词条里（`**档位**` 一行），不在这份 ADR 里。
 
 ## 注解

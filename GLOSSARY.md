@@ -74,6 +74,88 @@ _Avoid_: 回收站、废弃列表、trash
 仓库根的 `GLOSSARY.md`——本 effort 的用词宪法，给写作者看。与书尾给读者看的术语表不是一回事。
 _Avoid_: 词典、词汇表、glossary（不加限定地单说）
 
+## 运行时词汇
+
+pi durable 的原语名。读者是在 README 与源码里遇见它们的——所以这一节档位偏保留英文。**字面名不译**：枚举值与选项名（`pending`、`waiting`、`completed`、`faulted`、`orphaned`、`aborted`、`replay: "safe"`、`whenBusy`）、方法名（`submit()`、`commit()`、`fork()`）、kind（`pi.user`、`pi.codemode.run`）逐字保留英文，不占档位、不做术语注解——读者要拿它们去 grep 源码，只在首次出现处给一句「它是哪一层的东西」。
+
+**Harness**:
+durable 的宿主 API：一个打开的存储，加上在它上面跑 agent 的那台机器。`Harness.open()` 打开一个 **Session**。
+**档位**: A
+
+_Avoid_: 骨架（已属于本书）、夹具、宿主、engine
+
+**Session**:
+持有唯一 mutation line 的内核对象，管着 conversations、entries、tasks、submissions、documents。
+**档位**: B
+
+_Avoid_: 线程、thread、连接
+
+**Conversation**:
+transcript 作用域；它的 handle 无状态，只比 `id` 多一点。durable 里**没有** thread 这个词。
+**档位**: A
+
+_Avoid_: 线程、对话（会和**会话**糊在一起，而那正是要区分的两个东西）
+
+**Entry**:
+一条不可变的 transcript 记录。
+**档位**: A
+
+_Avoid_: 记录、条目、message
+
+**Commit**:
+一次原子写。
+**档位**: A
+
+_Avoid_: 提交（留给 Submission）、transaction
+
+**Document**:
+存在 transcript 旁边、在 commit 内改动的 typed JSON 状态。
+**档位**: B
+
+_Avoid_: 文件、file
+
+**Task**:
+durable 状态机，每步存 checkpoint；每个 task 有一个 owner。
+**档位**: B
+
+_Avoid_: 作业、job、process
+
+**Submission**:
+交给 conversation 的东西——一次 input，或一条要写的 entry——并且可以 wait。
+**档位**: A
+
+_Avoid_: 提交、请求、request
+
+**Turn**:
+一次模型响应及其 tool 调用。
+**档位**: A
+
+_Avoid_: 轮、回合、step
+
+**Run**:
+从一个 input 到它最终答案的各个 turn；run 进行中 conversation 为 busy。
+**档位**: A
+
+_Avoid_: 运行（「运行时」保留给 runtime）、执行、execution
+
+**Extension**:
+一个命名束：tools、system prompt sections、hooks、wraps、tasks。
+**档位**: B
+
+_Avoid_: 插件、plugin、模块
+
+**Registry**:
+本进程安装的 extensions；运行中可变。
+**档位**: A
+
+_Avoid_: 注册表
+
+**Agent**:
+一个 conversation 跑起来用的那套配置：model、thinking level、所选 extensions、tools、instructions、working directory。
+**档位**: A
+
+_Avoid_: 智能体、代理
+
 ## Relationships
 
 - 一本书由八条**轴**组织，每条轴下约 12 条**灵感**
@@ -83,6 +165,12 @@ _Avoid_: 词典、词汇表、glossary（不加限定地单说）
 - **摘记**住在**摘记池**里；**毕业**后成为一条**灵感**
 - 一条**灵感**有一个**编号**（永久）和一个**次序**（可重排）
 - 弃掉的**编号**进**遗弃名单**
+
+- **Session** 是内核对象，**Harness** 是打开它的宿主 API——不是同义词
+- turn 是「一次响应 + 它的工具调用」，run 是「从 input 到答案的全部 turn」，submission 是「交进去、可 wait 的东西」
+- commit 是一次原子写，entry 是一条记录，submission 是一次递交——三者中文里都别写成「提交」
+- **Conversation** 是 transcript 作用域；durable 里没有 thread
+- **Harness** 是宿主，**Agent** 是跑在某个 conversation 上的配置——两者不同层
 
 ## Flagged ambiguities
 
