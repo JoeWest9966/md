@@ -11,7 +11,7 @@
 _Avoid_: idea、点子、技巧、tips、pattern
 
 **轴**:
-灵感的一级分类，取 engineering 问题而非技术特性（如「验证与信任」「上下文经济学」）。全书八轴。每条灵感声明一个主轴与一个次轴。
+灵感的一级分类，取 engineering 问题而非技术特性（如「验证与信任」「上下文经济学」）。全书八轴。每条灵感**主轴必填、次轴按需**（边界判据与配额见 [ADR-0004](docs/adr/0004-axis-structure-and-ladder.md)）。
 **档位**: C
 
 _Avoid_: 分类、章节、主题、category
