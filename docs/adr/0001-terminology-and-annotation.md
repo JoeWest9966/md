@@ -11,9 +11,12 @@ Status: accepted（决定于 [#6](https://github.com/JoeWest9966/md/issues/6)）
 | A 保留英文 | 运行时自造专名；译了会让两个不同原语看起来一样 | 英文原词，首次斜体 + 括号注解 | harness、commit、entry、turn/run、registry、codemode |
 | B 中文为主 | 中文技术语境里已有唯一、不歧义的译法 | 中文译名，首次括注英文 | conversation→对话、task→任务、document→文档、tool→工具 |
 | C 中文自造词 | 书自己的主语 | 中文，不括注 | 灵感、轴、门槛、骨架、地图、决策票 |
-| D 保留英文的 coined 词 | matt 侧生造成语；译了就认不出 | 同 A | tracer bullet、fog of war、leading word、grounding |
+| D1 中文意象的隐喻 | matt 的 coined 词多是隐喻，中文有现成意象 | 中文译名，首次括注英文 | fog of war→战争迷雾、tracer bullet→曳光弹、seam→接缝、deep module→深模块 |
+| D2 保留英文的无意象词 | 生造且中文没有现成意象可借 | 英文原词，首次注解 | leading word、smart zone、pit of success、DRI、HITL / AFK |
 
-判定规则：**这个词在中文技术语境里有没有唯一、不歧义的译法？有 → B；没有，或译了会抹掉边界 → A/D；书自己的概念 → C。**
+判定规则：**这个词在中文技术语境里有没有唯一、不歧义的译法？有 → B；没有，或译了会抹掉边界 → A；是隐喻且中文有意象 → D1；生造又无意象 → D2；书自己的概念 → C。**
+
+D 档不是「生造词一律留英文」。**保留英文不给中文读者带来识别优势**，它只保值（可搜、能对上社区与原文）；而隐喻型生造词译成中文意象，读者反而立刻就懂。所以留英文的门槛是「没有意象可译」，不是「作者生造过」。
 
 **字面名不译**：枚举值与选项名（`pending`、`faulted`、`replay: "safe"`、`whenBusy`）、方法名（`submit()`、`commit()`、`fork()`）、`pi.*` kind 逐字保留英文，不占档位、不做术语注解，只在首次出现处给一句「它是哪一层的东西」。它们不是词汇，是 API 表面；读者要拿它们去 grep 源码和 issue。
 
@@ -41,6 +44,7 @@ Status: accepted（决定于 [#6](https://github.com/JoeWest9966/md/issues/6)）
 - **脚注 / 边注**（弃）：EPUB 流式排版放不住边注；脚注在三种出货形态里实现各异，且要求读者跳转。行内括号不打断理解。
 - **全书首次注解**（弃）：跳读者拿到的第一个术语就是裸英文。
 - **术语表单开一份 `book/terminology.md`**（弃）：两份维护必漂，而写稿时本来就逐词过 `GLOSSARY.md`。
+- **coined 词一律保留英文**（弃，第一轮曾这么定）：隐喻型译成中文意象更容易认出来（战争迷雾、曳光弹、接缝），只有无语象可借的词才需要留英文。
 - **全篇保留英文、不设档位**（弃）：正文会碎，且 conversation / task / document 这类词中文里本来就有干净译法。
 
 ## Consequences
