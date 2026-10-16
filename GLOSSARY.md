@@ -40,6 +40,24 @@ _Avoid_: 目标读者、新手、小白
 
 _Avoid_: 天真做法、baseline、naive 做法
 
+**审读**:
+纯文稿的质检动作：隔离的**审读员**拿**门槛卡**逐栏复判，加一条与门槛正交的**冷读**轴。它只证伪，不裁「这算不算**灵感**」——那是人的一票。规程见 [docs/adversarial-review.md](docs/adversarial-review.md)。
+**档位**: C（流程词，不进正文）
+
+_Avoid_: 评审、review、审核
+
+**审读员**:
+执行**审读**的隔离 agent：替换人格、无起草过程记忆、只读，扮演目标读者里最不宽容的那一个。每栏判词必须引到正文的具体句子，引不出只能写「无法判定」。
+**档位**: C（流程词，不进正文）
+
+_Avoid_: 审稿人、评委、reviewer
+
+**冷读**:
+**审读**的第二条轴：一个没有上下文的读者只读正文，回答三件事——复述得出 **leading word** 吗、说得出何时别用吗、哪句术语没 ground。**门槛卡**管「值不值得进书」（作者侧举证），冷读管「读者接不接得住」；两轴分开报，不互相抵消。
+**档位**: C（流程词，不进正文）
+
+_Avoid_: 试读、读者测试、beta read
+
 **leading word**:
 一个短语，能命名并扛住整条灵感，读者记它就像记 *tracer bullet*、*fog of war*。给不出名字，通常说明想法还没长熟。
 **档位**: D（保留英文，首次出现处括注一句中文）
@@ -99,16 +117,106 @@ _Avoid_: 回收站、废弃列表、trash
 _Avoid_: 词典、词汇表、glossary（不加限定地单说）
 **档位**: C（流程词，不进正文）
 
+## 运行时词汇
+
+pi durable 的原语名。读者是在 README 与源码里遇见它们的——所以这一节档位偏保留英文。**字面名不译**：枚举值与选项名（`pending`、`waiting`、`completed`、`faulted`、`orphaned`、`aborted`、`replay: "safe"`、`whenBusy`）、方法名（`submit()`、`commit()`、`fork()`）、kind（`pi.user`、`pi.codemode.run`）逐字保留英文，不占档位、不做术语注解——读者要拿它们去 grep 源码，只在首次出现处给一句「它是哪一层的东西」。
+
+**Harness**:
+durable 的宿主 API：一个打开的存储，加上在它上面跑 agent 的那台机器。`Harness.open()` 打开一个 **Session**。
+**档位**: A
+
+_Avoid_: 骨架（已属于本书）、夹具、宿主、engine
+
+**Session**:
+持有唯一 mutation line 的内核对象，管着 conversations、entries、tasks、submissions、documents。
+**档位**: B
+
+_Avoid_: 线程、thread、连接
+
+**Conversation**:
+transcript 作用域；它的 handle 无状态，只比 `id` 多一点。durable 里**没有** thread 这个词。
+**档位**: A
+
+_Avoid_: 线程、对话（会和**会话**糊在一起，而那正是要区分的两个东西）
+
+**Entry**:
+一条不可变的 transcript 记录。
+**档位**: A
+
+_Avoid_: 记录、条目、message
+
+**Commit**:
+一次原子写。
+**档位**: A
+
+_Avoid_: 提交（留给 Submission）、transaction
+
+**Document**:
+存在 transcript 旁边、在 commit 内改动的 typed JSON 状态。
+**档位**: B
+
+_Avoid_: 文件、file
+
+**Task**:
+durable 状态机，每步存 checkpoint；每个 task 有一个 owner。
+**档位**: B
+
+_Avoid_: 作业、job、process
+
+**Submission**:
+交给 conversation 的东西——一次 input，或一条要写的 entry——并且可以 wait。
+**档位**: A
+
+_Avoid_: 提交、请求、request
+
+**Turn**:
+一次模型响应及其 tool 调用。
+**档位**: A
+
+_Avoid_: 轮、回合、step
+
+**Run**:
+从一个 input 到它最终答案的各个 turn；run 进行中 conversation 为 busy。
+**档位**: A
+
+_Avoid_: 运行（「运行时」保留给 runtime）、执行、execution
+
+**Extension**:
+一个命名束：tools、system prompt sections、hooks、wraps、tasks。
+**档位**: B
+
+_Avoid_: 插件、plugin、模块
+
+**Registry**:
+本进程安装的 extensions；运行中可变。
+**档位**: A
+
+_Avoid_: 注册表
+
+**Agent**:
+一个 conversation 跑起来用的那套配置：model、thinking level、所选 extensions、tools、instructions、working directory。
+**档位**: A
+
+_Avoid_: 智能体、代理
+
 ## Relationships
 
 - 一本书由八条**轴**组织，每条轴下约 12 条**灵感**
 - 一条**灵感**必须过五道**门槛**才进书，逐关记在**门槛卡**上
 - 一条**灵感**有一条 **leading word**，写在**骨架**里
 - 「增量价值」拿**单边做法**当对照基线；「反直觉」以**单边读者**为准
+- 一条**灵感**要过**审读**两条轴：**门槛卡**复判（作者侧）与**冷读**（读者侧）
+- **审读**的两道时机与**门槛**的分关判定对齐：**毕业**审前 3 关，成稿审后 2 关
+- **审读**总判的处置：过 / 补判（至多三次）/ 砍（烧号进**遗弃名单**）/ 退回**摘记池** / 分裂**上呈人**
 - **地图**持有许多**决策票**；一张票解决后其结论进入地图的 Decisions so far
 - **摘记**住在**摘记池**里；**毕业**后成为一条**灵感**
 - 一条**灵感**有一个**编号**（永久）和一个**次序**（可重排）
 - 弃掉的**编号**进**遗弃名单**
+- **Session** 是内核对象，**Harness** 是打开它的宿主 API——不是同义词
+- turn 是「一次响应 + 它的工具调用」，run 是「从 input 到答案的全部 turn」，submission 是「交进去、可 wait 的东西」
+- commit 是一次原子写，entry 是一条记录，submission 是一次递交——三者中文里都别写成「提交」
+- **Conversation** 是 transcript 作用域；durable 里没有 thread
+- **Harness** 是宿主，**Agent** 是跑在某个 conversation 上的配置——两者不同层
 
 ## Flagged ambiguities
 
@@ -116,4 +224,5 @@ _Avoid_: 词典、词汇表、glossary（不加限定地单说）
 - 「术语表」被两个东西共用：仓库根的 `GLOSSARY.md`（写作宪法）与书尾给读者的术语表（书的一部分，形态仍在雾里）。已收敛：不加限定地说「术语表」指前者；书里那个一律写「书尾术语表」。
 - 「章节」不能当**灵感**的同义词（书里一条灵感不是一章）。目录名、票名、正文一律用「灵感」；「章节」只在引用外部文档时出现。
 - **单边做法** vs **骨架**里的「天真做法」：不是同一个东西，别混用。单边做法是**举证基线**（作者拿它证明增量价值，必须真实存在）；天真做法是**叙事槽位**（稿子里那一段，讲读者的朴素解法为什么不够）。同一条灵感里两者常常重合，但重合不是定义。
+- **冷读**不是第六道**门槛**：门槛是五关判据，冷读是**审读**的第二条轴，管读者侧的可懂，不参与「进不进书」
 - **毕业**的旧说法「过了五道门槛」与 #5 定的分次判定冲突：毕业只判前三关，后两关在成稿时判。已改；引用「毕业」时别再写成「过完五关」。
