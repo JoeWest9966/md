@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# prepare-commit-msg —— 拒绝把「落后于远端的陈旧分支」并进来。
+#
+# 事故来源（#2）：本地 research/durable-primitives 停在 b2805c5，远端已经跑到 6de0e6a；
+# 没 fetch 就并进 main，把陈旧初稿当成产出并推上了主干。
+#
+# 为什么挂在这个钩子：`git merge` 在 pre-merge-commit 阶段还没写 MERGE_HEAD（只有 AUTO_MERGE），
+# 到这里（source=merge）它才在，才认得出被并进来的那个 tip。
+#
+# 判据：MERGE_HEAD 是某个 origin/<branch> 的**严格祖先** → 那条分支已往前走，你并的是旧快照。
+# 检测必须先 fetch：只比本地缓存会以为"同步"，那正是事故本身。
+set -uo pipefail
+
+msg_file="${1:-}"
+source_of_msg="${2:-}"
+[ "$source_of_msg" = "merge" ] || exit 0
+
+remote="${REMOTE:-origin}"
+MERGE_HEAD_SHA="$(git rev-parse --verify --quiet MERGE_HEAD || true)"
+[ -z "$MERGE_HEAD_SHA" ] && exit 0
+
+if git remote get-url "$remote" >/dev/null 2>&1; then
+  git fetch --quiet --prune "$remote" 2>/dev/null ||
+    echo "prepare-commit-msg: 警告 —— fetch $remote 失败，本轮只比本地缓存" >&2
+fi
+
+stale=""
+while read -r ref; do
+  b="${ref#refs/remotes/$remote/}"
+  case "$b" in ''|HEAD) continue ;; esac
+  remote_sha="$(git rev-parse "$ref")"
+  [ "$remote_sha" = "$MERGE_HEAD_SHA" ] && continue
+  if git merge-base --is-ancestor "$MERGE_HEAD_SHA" "$remote_sha" 2>/dev/null; then
+    stale="$stale
+    $b: 并的是 ${MERGE_HEAD_SHA:0:7}，$remote/$b 已经是 ${remote_sha:0:7}"
+  fi
+done < <(git for-each-ref --format='%(refname)' "refs/remotes/$remote")
+
+if [ -n "$stale" ]; then
+  echo "拒绝提交这次 merge：被并的 tip 落后于它的远端分支，并的是陈旧快照。$stale" >&2
+  echo "  先去那条分支上把远端内容取回、对账，再重并。#2 事故。" >&2
+  echo "  这次 merge 已中止（还留在 index 里）：先 git merge --abort。" >&2
+  exit 1
+fi
+
+exit 0
