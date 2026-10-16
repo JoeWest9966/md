@@ -149,19 +149,27 @@ _Avoid_: 词典、词汇表、glossary（不加限定地单说）
 
 ## 运行时词汇
 
-pi durable 的原语名。读者是在 README 与源码里遇见它们的——所以这一节档位偏保留英文。**字面名不译**：枚举值与选项名（`pending`、`waiting`、`completed`、`faulted`、`orphaned`、`aborted`、`replay: "safe"`、`whenBusy`）、方法名（`submit()`、`commit()`、`fork()`）、kind（`pi.user`、`pi.codemode.run`）逐字保留英文，不占档位、不做术语注解——读者要拿它们去 grep 源码，只在首次出现处给一句「它是哪一层的东西」。
+pi durable 的原语名。读者是在 README 与源码里遇见它们的——所以这一节档位偏保留英文。**字面名不译**：枚举值与选项名（`pending`、`waiting`、`completed`、`faulted`、`orphaned`、`aborted`、`replay: "safe"`、`whenBusy`）、方法名（`submit()`、`commit()`、`fork()`）、kind（`pi.user`、`pi.codemode.run`）、会话视图名（`viewState` / `watch`）逐字保留英文，不占档位、不做术语注解——读者要拿它们去 grep 源码，只在首次出现处给一句「它是哪一层的东西」。
 
 **Harness**:
-durable 的宿主 API：一个打开的存储，加上在它上面跑 agent 的那台机器。`Harness.open()` 打开一个 **Session**。
+durable 对外的那一层 API：一个打开的存储，加上在它上面跑 agent 的那台机器。`Harness.open()` 打开一个 **Session**。
 **档位**: A
 
-_Avoid_: 骨架（已属于本书）、夹具、宿主、engine
+_Avoid_: 骨架（已属于本书）、夹具、宿主、engine、入口
+
+> #10 前言样张顺手指出的自家矛盾：本词条原写作「durable 的**宿主** API」，而 `宿主` 正在本词条的 `_Avoid_` 里。已改。
 
 **Session**:
 持有唯一 mutation line 的内核对象，管着 conversations、entries、tasks、submissions、documents。
 **档位**: B
 
 _Avoid_: 线程、thread、连接
+
+**写入线**（mutation line）:
+会话里那条唯一的写入通道；所有写入排队从它过去，**已 *commit* 的才可见**这条保证就是从它来的。一条写入线 = 全局串行写入，所以一次 *commit* 必须短。
+**档位**: B
+
+_Avoid_: 写队列、mutation queue、单写入者
 
 **Conversation**:
 transcript 作用域；它的 handle 无状态，只比 `id` 多一点。durable 里**没有** thread 这个词。
@@ -461,11 +469,23 @@ _Avoid_: 入口、快捷方式、入口点
 
 _Avoid_: 上下文窗口、有效区间
 
+**外部效果**（external effect）:
+任何不在一次 *commit* 里的后果：发一封邮件、调一个外面的服务、写一个文件。它只能夹在「写下意图 → 出去做 → 写回结果」三段之间，所以崩溃重开时「效果可能已经发生」这件事由应用自己负责——这条缝是「失败与恢复」那一轴的原点。
+**档位**: B
+
+_Avoid_: 副作用、side effect、外部调用
 **上下文卫生**（context hygiene）:
 1–3 步的工作保持在一个未打断的上下文窗口里；别在切票前 compact 或 clear。
 **档位**: B
 
 _Avoid_: 上下文管理、省 token
+**push right**:
+把**人来验收的时机**尽量往后推：只问一次，且问的时候材料齐备，不问中间状态。这是 loop-me 的纪律，也是本书「人类检查点与注意力」那一轴的对照基线。中文没有现成意象（「往右推」是方位不是意象），保留英文。
+**档位**: D2
+
+_Avoid_: 推迟检查点、后置验收
+
+> 这条 `检查点` 指的是**人的验收时机**，不是 durable 的 task checkpoint——两个东西在本书里不许共用一个词：正文写 `checkpoint` 时一律指 durable 那一个，写「人的验收时机」时不许写成「检查点」。
 
 **一手来源**（primary source）:
 官方文档、源码、spec、一方 API——不是对它们的二手转述。原型的产物、研究笔记、上一次会话本身也都是一手来源，所以「接着原会话干」是默认选项。
@@ -474,7 +494,7 @@ _Avoid_: 上下文管理、省 token
 _Avoid_: 原始资料、参考资料
 
 **护栏**（guardrail）:
-预提交钩子或 CI 任务形式的护栏；没有护栏的仓库本身就是一条发现。
+pre-commit hook 或 CI 任务形式的护栏；没有护栏的仓库本身就是一条发现。
 **档位**: D1
 
 _Avoid_: 检查、门禁、gate
@@ -512,11 +532,11 @@ _Avoid_: 负责人、owner
 - **摘记**住在**摘记池**里；**毕业**后成为一条**灵感**
 - 一条**灵感**有一个**编号**（永久）和一个**次序**（可重排）
 - 弃掉的**编号**进**遗弃名单**
-- **Session** 是内核对象，**Harness** 是打开它的宿主 API——不是同义词
+- **Session** 是内核对象，**Harness** 是打开它的那一层 API——不是同义词
 - turn 是「一次响应 + 它的工具调用」，run 是「从 input 到答案的全部 turn」，submission 是「交进去、可 wait 的东西」
-- commit 是一次原子写，entry 是一条记录，submission 是一次递交——三者中文里都别写成「提交」
+- *commit* 是一次原子写，*entry* 是一条改不掉也删不掉的事实，*submission* 是一次递交——三者中文里都别写成「提交」
 - **Conversation** 是 transcript 作用域；durable 里没有 thread
-- **Harness** 是宿主，**Agent** 是跑在某个 conversation 上的配置——两者不同层
+- **Harness** 是打开存储的那一层，**Agent** 是跑在某个 conversation 上的配置——两者不同层
 
 ## Flagged ambiguities
 
@@ -535,3 +555,5 @@ _Avoid_: 负责人、owner
 - **取严**不是**补判**也不是「**无法判定**」：补判与无法判定都是「引不出句子 / 差一关偏软」，仍可重审；**取严**是审读员逐栏**意见分裂**时的默认，直接落不过。两者混用会把「审读员没证据」当「审读员不同意」。
 - **`零发现批` 与旧的 `零砍批` 是同一个信号的两个判据**：数「砍」在健康批上误报（#9 校准两轮零砍、同时挑出几十处真发现），已改成数「发现」。旧文里的「零砍批」按新判据读，新写一律用 `零发现批`。
 - **ground 的尺子没成文时，审读员各判各的**：同一份稿件，两份报告的「无 ground」清单能差出一条（#9 校准）。尺子已写进 `docs/adversarial-review.md`「角度二的两把尺子」；不按那把尺子判出来的「术语违规」不算判据，只能算意见。
+- **`checkpoint` 两域**：durable 的 task checkpoint（每一步的落点）与 matt 侧 `push right` 语境里那个「人的验收时机」。已收敛：正文里的 `checkpoint` 一律指 durable 那一个；人的那一个写「人的验收时机」，不写「检查点」（#10 前言样张一稿曾在 `push right` 的括注里撞到这条）。
+- **「地图」两域**：wayfinder 的**地图**（本 effort 那张决策票 issue，C 档**流程词**）与本书序言里「两个世界的示意图」那个文学义。已收敛：不加限定说「地图」指前者；正文里的示意图一律写「一张图」，不写「地图」（#10 前言样张的标题得留「地图」，正文已改）。
