@@ -243,12 +243,12 @@
 
 | 术语 | 一句释义 | 出处 | 归属 |
 | --- | --- | --- | --- |
-| `module` | 任何有接口又有实现的东西；刻意与尺度无关（函数、类、包、跨层切片）。_Avoid_: unit / component / service | `skills/engineering/codebase-design/SKILL.md` | 外部归因（Ousterhout 传统；仓库给了 Avoid 列表） |
-| `interface` | 调用方要正确使用该模块必须知道的一切：类型签名 + 不变量 + 顺序约束 + 错误模式 + 必填配置 + 性能特征。_Avoid_: API / signature | 同上 | 外部归因（同上，并明确拒绝了「TS interface 关键字」的窄解） |
+| `module` | 任何有接口又有实现的东西；刻意与尺度无关（函数、类、包、跨层切片）。_Avoid_: unit / component / service | `skills/engineering/codebase-design/SKILL.md` | 来源未声明（本仓库 Glossary 节自定义并配 Avoid 列表，未点名外部出处；`README.md` 另引 Ousterhout「The best modules are deep」） |
+| `interface` | 调用方要正确使用该模块必须知道的一切：类型签名 + 不变量 + 顺序约束 + 错误模式 + 必填配置 + 性能特征。_Avoid_: API / signature | `skills/engineering/codebase-design/SKILL.md` | 来源未声明（定义在本仓库；Rejected framings 明确拒绝「TS interface 关键字或类的公开方法」的窄解） |
 | `implementation` | 模块内部那堆代码；与 `adapter` 相对 | 同上 | 普通工程英语 |
 | `adapter` | 在某个 seam 上满足接口的具体物；描述**角色**（填哪个槽），不描述内容 | 同上 | matt 自造（在本词汇表内被窄义化） |
-| `depth` | 接口处的杠杆：调用方每学一点接口能驱动多少行为。大行为 + 小接口 = deep；接口和实现几乎一样复杂 = shallow | 同上 | 外部归因（Ousterhout，但**拒绝**了「实现行数 / 接口行数」的比值定义，改用 depth-as-leverage） |
-| `deep module` / `shallow module` | 深模块 / 浅模块；后者的接口比实现还大，要避免 | 同上 | 外部归因（Ousterhout） |
+| `depth` | 接口处的杠杆：调用方每学一点接口能驱动多少行为。大行为 + 小接口 = deep；接口和实现几乎一样复杂 = shallow | `skills/engineering/codebase-design/SKILL.md` | 外部归因（Rejected framings 节点名 Ousterhout 的「实现行数 / 接口行数」比值定义并拒绝之，改用 depth-as-leverage） |
+| `deep module` / `shallow module` | 深模块 / 浅模块；后者的接口比实现还大，要避免 | `skills/engineering/codebase-design/SKILL.md`、`README.md`（引 Ousterhout） | 外部归因（Ousterhout） |
 | `seam` | 能不改某处就改变其行为的位置，即模块接口所在之处。_Avoid_: boundary（与 DDD bounded context 重载） | 同上；`skills/engineering/tdd/SKILL.md` | 外部归因（Michael Feathers，原文点名） |
 | `leverage` | 调用方从深度得到的东西：每学一点接口换来更多能力；一份实现对 N 个调用点和 M 个测试同时还本 | 同上 | matt 自造（Ousterhout 框架内的再命名，未声明） |
 | `locality` | 维护者从深度得到的东西：改动、bug、知识、验证集中在一处，而不是摊到所有调用方；改一次，处处修好 | 同上 | matt 自造 |
