@@ -13,7 +13,7 @@
 
 Two branches that both edited `GLOSSARY.md` will not auto-merge, and the losing side silently reverts decisions. So:
 
-1. **Detect** before merging: `git rev-list --count main..<branch>` and `git rev-list --count <branch>..main`. A non-zero second number means the branch is missing trunk commits.
+1. **`git fetch` first, then detect**: compare against `origin/<branch>`, not the local ref. A local branch that was never fetched looks in sync while the remote runs three commits ahead — merging then lands a superseded draft on the trunk (this happened to `research/durable-primitives`). Then `git rev-list --count main..<branch>` and `git rev-list --count <branch>..main`; a non-zero second number means the branch is missing trunk commits.
 2. **Reconcile on the branch**, not on `main`: pull trunk files the branch never touched (`git checkout main -- <path>`), keep whichever side carries the newer decision on the files both touched, commit as `对账`.
 3. **Merge the branch into `main`**, resolving `GLOSSARY.md` in favour of the branch — step 2 already made the branch the merged truth.
 4. **Verify nothing trunk-only was dropped**: `git diff <old-main-tip>:GLOSSARY.md GLOSSARY.md` and read every `-` line. Each one must be a line that a newer decision supersedes.
