@@ -228,7 +228,7 @@
 | `tracer bullet` | 一条窄但**完整**穿过所有层（schema / API / UI / tests）的票，一落地就能单独演示 | `skills/engineering/to-tickets/SKILL.md`、`docs/engineering/to-tickets.md` | 来源未声明（`writing-for-agents` 把它当「预训练里已有的词」用；仓库内未声明出处） |
 | `vertical slice` | 竖片：一条贯通所有层的薄路径，单独可验证，且拥有它要验收的一切 | 同上 | 来源未声明 |
 | `horizontal slice` | 横片：一次只出一层，层没齐什么都跑不起来；`to-tickets` 的头号失败模式 | 同上 | 普通工程英语 |
-| `blocking edges` | 票与票之间的阻塞边；「边才是产物的重点」 | `skills/engineering/to-tickets/SKILL.md` | matt 自造 |
+| `blocking edges` | 票与票之间的阻塞边；「The edges are the point of the artifact.」边活在票里，tracker 只决定有没有东西能并行利用它们 | `docs/engineering/to-tickets.md`（同 `skills/engineering/to-tickets/SKILL.md`） | matt 自造 |
 | `prefactoring` | 「先让改动变容易，再去做容易的改动」；排在最前面 | 同上 | 来源未声明（Kent Beck 式谚语，未声明） |
 | `wide refactor` | 一次机械改动（改列名、改共享符号类型）而爆炸半径覆盖全库，竖片无法独自绿的例外情形 | 同上 | matt 自造 |
 | `blast radius` | 一次改动的波及范围；wide refactor 按它分批 | 同上 | 普通工程英语 |
