@@ -29,3 +29,14 @@ subtitle: matt skills × pi durable 的一百个灵感
 | 018-one-conversation-one-playground.md | one conversation, one playground | 委派与并发 | 失败与恢复 |
 | 019-a-copy-takes-no-patch.md | a copy takes no patch | 委派与并发 | 共同语言 |
 | 020-durable-map-absent-lock.md | durable map, absent lock | 委派与并发 | 计划与路线 |
+| 021-the-red-is-on-the-record.md | the red is on the record | 验证与信任 | 记忆与延续 |
+| 022-unsafe-by-default.md | unsafe by default | 验证与信任 | 失败与恢复 |
+| 023-the-guard-doesnt-run-twice.md | the guard doesn't run twice | 验证与信任 | 失败与恢复 |
+| 024-one-hook-that-can-say-no.md | one hook that can say no | 验证与信任 | 委派与并发 |
+| 025-two-channels-one-visible.md | two channels, one visible | 验证与信任 | 上下文经济学 |
+| 026-judged-by-someone-who-wasnt-there.md | judged by someone who wasn't there | 验证与信任 | 委派与并发 |
+| 027-prove-it-bites.md | prove it bites | 验证与信任 | — |
+| 028-evidence-before-action.md | evidence before action | 验证与信任 | 计划与路线 |
+| 029-undecidable-durably.md | undecidable, durably | 验证与信任 | 失败与恢复 |
+| 030-trust-the-commit-not-the-process.md | trust the commit, not the process | 验证与信任 | 失败与恢复 |
+| 031-audit-is-app-side.md | audit is app-side | 验证与信任 | 记忆与延续 |
