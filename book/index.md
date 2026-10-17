@@ -40,3 +40,17 @@ subtitle: matt skills × pi durable 的一百个灵感
 | 029-undecidable-durably.md | undecidable, durably | 验证与信任 | 失败与恢复 |
 | 030-trust-the-commit-not-the-process.md | trust the commit, not the process | 验证与信任 | 失败与恢复 |
 | 031-audit-is-app-side.md | audit is app-side | 验证与信任 | 记忆与延续 |
+| 032-the-invisible-half.md | the invisible half | 上下文经济学 | 验证与信任 |
+| 033-what-fits-is-what-is-known.md | what fits is what is known | 上下文经济学 | 验证与信任 |
+| 034-pointer-not-payload.md | pointer, not payload | 上下文经济学 | 委派与并发 |
+| 035-pay-twice-to-find-once.md | pay twice to find once | 上下文经济学 | 共同语言 |
+| 036-search-by-word-not-meaning.md | search by word, not meaning | 上下文经济学 | 共同语言 |
+| 037-the-catalog-costs-tokens.md | the catalog costs tokens | 上下文经济学 | 共同语言 |
+| 038-resend-the-delta.md | resend the delta | 上下文经济学 | 记忆与延续 |
+| 039-one-changing-line-costs-the-cache.md | one changing line costs the cache | 上下文经济学 | 记忆与延续 |
+| 040-three-dials-of-spend.md | three dials of spend | 上下文经济学 | — |
+| 041-every-attempt-pays.md | every attempt pays | 上下文经济学 | 记忆与延续 |
+| 042-compaction-eats-edits.md | compaction eats edits | 上下文经济学 | 记忆与延续 |
+| 043-no-global-ledger.md | no global ledger | 上下文经济学 | 委派与并发 |
+| 044-spend-without-evidence.md | spend without evidence | 上下文经济学 | 验证与信任 |
+| 045-the-frontier-has-a-second-home.md | the frontier has a second home | 上下文经济学 | 记忆与延续 |
