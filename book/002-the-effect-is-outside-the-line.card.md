@@ -1,5 +1,5 @@
 ---
-status: draft
+status: reviewed
 ---
 # 002-the-effect-is-outside-the-line 效果在写入线之外 · 门槛卡
 - **两边在场**: matt：tdd / implement 把 commit 当里程碑（「提交了就落地了」）↔ durable：外部效果永不进 commit，只能靠 intent → effect → outcome 三明治挪到事务外（GLOSSARY「外部效果」词条）。组合：记录与发生是两件事，重开落在 intent 阶段。

@@ -1,5 +1,5 @@
 ---
-status: draft
+status: reviewed
 ---
 # 003-forgetting-as-visibility 遗忘即可见性 · 门槛卡
 - **两边在场**: matt：/clear 与 handoff（旧上下文压成一份文件，会话没了就真没了）↔ durable：reset() durably admits 一条 pi.reset entry 加移动 head，原条目一条不少（spec §8 已核）。组合：遗忘本身成了一条历史事实，事后读得回、溯源得到。
